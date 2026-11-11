@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emithran Reddit Inbox</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<script>
+// Fill in these two values from Supabase: Project Settings > API.
+// The anon key is meant to be public. Never put the service key here.
+const SUPABASE_URL = "https://awtupqdmzvvcdxgqsouk.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_9HXMMCtlMLKNTC5mHiGwyA_XO1xauml";
+</script>
+<style>
+:root {
+  --bg: #f3f5f6; --surface: #ffffff; --ink: #14222b; --muted: #5d6f7a; --line: #d9e0e4;
+  --accent: #0b6e7f; --accent-ink: #ffffff; --good: #1f7a45; --warn: #a56a00; --chip: #e6eef1;
+  --font-display: "Space Grotesk", system-ui, sans-serif; --font-body: "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0f171c; --surface: #172229; --ink: #e6eef2; --muted: #94a7b1; --line: #28373f;
+  --accent: #4fb8c9; --accent-ink: #06222a; --good: #5cc98a; --warn: #e3b04b; --chip: #20313a; color-scheme: dark; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding: 20px 16px 48px; }
+.wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-family: var(--font-display); font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+.status { color: var(--muted); font-size: 0.875rem; margin: 4px 0 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: 600 0.95rem var(--font-body); padding: 10px 14px; cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+select, textarea, input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+select { min-width: 150px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.done { opacity: 0.6; }
+.top { display: flex; gap: 12px; align-items: flex-start; }
+.score { flex: none; width: 38px; height: 38px; border-radius: 6px; display: grid; place-items: center; font: 700 1.1rem var(--font-display); background: var(--chip); }
+.s5, .s4 { color: var(--good); } .s3 { color: var(--warn); }
+.title { font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.meta, .words { color: var(--muted); font-size: 0.8rem; margin: 2px 0 0; }
+.excerpt { color: var(--muted); font-size: 0.875rem; margin: 0; overflow-wrap: anywhere; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.875rem; margin: 0; }
+.facts dt { color: var(--muted); } .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.chip { display: inline-block; background: var(--chip); border-radius: 99px; padding: 1px 10px; font-size: 0.75rem; font-weight: 600; }
+.chip.hook { color: var(--accent); } .chip.warn { color: var(--warn); }
+textarea { width: 100%; min-height: 110px; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: 600 0.875rem var(--font-body); border-radius: 6px; padding: 8px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-block; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.on { border-color: var(--accent); color: var(--accent); }
+.empty { border: 1px dashed var(--line); border-radius: 8px; padding: 28px 20px; color: var(--muted); text-align: center; }
+.empty strong { display: block; color: var(--ink); font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 6px; }
+.warnbar { color: var(--warn); font-size: 0.85rem; margin: 0; }
+.today h2 { font: 700 0.75rem var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0; }
+.today .big { font: 700 1.3rem var(--font-display); margin: 0; }
+.today ol { margin: 0; padding-left: 20px; } .today p { margin: 0; } .today a { color: var(--accent); }
+#login { max-width: 360px; }
+#login label { text-transform: none; letter-spacing: 0; font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Emithran Reddit Inbox</h1>
+    <p class="status" id="status">Sign in to see the inbox.</p>
+    <p class="warnbar" id="warn" hidden></p>
+  </header>
+
+  <form class="card" id="login">
+    <label for="email">Email<input id="email" type="email" autocomplete="username" required></label>
+    <label for="password">Password<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit">Sign in</button>
+  </form>
+
+  <div id="app" hidden>
+    <section class="card today" id="today"></section>
+    <div class="tabs" role="tablist" style="margin-top:16px">
+      <button class="tab" role="tab" id="tab-leads" aria-selected="true">Threads to reply to</button>
+      <button class="tab" role="tab" id="tab-posts" aria-selected="false">Post drafts</button>
+      <button class="tab" id="signout" style="margin-left:auto">Sign out</button>
+    </div>
+    <section id="leadsView" style="margin-top:16px">
+      <div class="filters">
+        <label for="minScore">Minimum fit<select id="minScore"><option value="3">3 and up</option><option value="4" selected>4 and up</option><option value="5">5 only</option></select></label>
+        <label for="statusFilter">Show<select id="statusFilter"><option value="new" selected>New</option><option value="contacted">Replied</option><option value="ignored">Ignored</option><option value="all">All</option></select></label>
+      </div>
+      <div class="list" id="leads"></div>
+    </section>
+    <section id="postsView" hidden style="margin-top:16px"><div class="list" id="posts"></div></section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var token = null, leads = [], posts = [], scan = null;
+  var esc = function (s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; };
+  var words = function (s) { return (String(s || "").trim().match(/\S+/g) || []).length; };
+  var NOTE = " words. Drafted from the title and excerpt only, so read the thread before posting.";
+  function warn(m) { $("warn").textContent = m || ""; $("warn").hidden = !m; }
+  function ago(iso) {
+    var t = Date.parse(iso); if (!t) return "";
+    var m = Math.round((Date.now() - t) / 60000);
+    if (m < 60) return Math.max(m, 1) + " min ago";
+    if (m < 1440) return Math.round(m / 60) + " h ago";
+    return Math.round(m / 1440) + " days ago";
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(SUPABASE_URL + path, {
+      method: opts.method || "GET", body: opts.body ? JSON.stringify(opts.body) : undefined,
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + (token || SUPABASE_ANON_KEY), "Content-Type": "application/json" }
+    }).then(function (r) {
+      if (r.status === 401) { signOut("Your session ended. Sign in again."); throw new Error("401"); }
+      if (!r.ok) throw new Error("Request failed: " + r.status);
+      return r.text().then(function (t) { return t ? JSON.parse(t) : null; });
+    });
+  }
+
+  function signOut(msg) {
+    token = null; try { sessionStorage.removeItem("sb_token"); } catch (e) {}
+    $("app").hidden = true; $("login").hidden = false; $("status").textContent = msg || "Sign in to see the inbox.";
+  }
+
+  $("login").addEventListener("submit", function (e) {
+    e.preventDefault(); warn("");
+    api("/auth/v1/token?grant_type=password", { method: "POST", body: { email: $("email").value, password: $("password").value } })
+      .then(function (r) { token = r.access_token; try { sessionStorage.setItem("sb_token", token); } catch (e) {} $("password").value = ""; load(); })
+      .catch(function () { warn("Sign-in failed. Check the email and password."); });
+  });
+  $("signout").onclick = function () { signOut(); };
+
+  function load() {
+    $("login").hidden = true; $("app").hidden = false; $("status").textContent = "Loading…";
+    Promise.all([
+      api("/rest/v1/leads?select=*&order=score.desc,found_at.desc&limit=1000"),
+      api("/rest/v1/posts?select=*&order=created_at.desc&limit=50"),
+      api("/rest/v1/scans?select=*&order=scanned_at.desc&limit=1")
+    ]).then(function (r) { leads = r[0] || []; posts = r[1] || []; scan = (r[2] || [])[0] || null; render(); })
+      .catch(function (e) { if (e.message !== "401") $("status").textContent = "Could not load the inbox. Check the connection and reload."; });
+  }
+
+  function render() {
+    var fresh4 = leads.filter(function (l) { return l.status === "new" && l.score >= 4; }).length;
+    $("status").textContent = (scan ? "Last scan " + ago(scan.scanned_at) : "No scan yet") + " · " + leads.length + " threads stored · " + fresh4 + " new at fit 4 or higher · " + posts.length + " post drafts";
+    renderToday(); renderLeads(); renderPosts();
+  }
+
+  function renderToday() {
+    var now = new Date().toDateString();
+    var fresh = leads.filter(function (l) { return new Date(l.found_at).toDateString() === now; });
+    var best = leads.filter(function (l) { return l.status === "new"; }).slice(0, 3);
+    var h = "<h2>Today</h2>";
+    if (!scan && !leads.length) h += '<p class="big">No scan has run yet</p><p>The first scan runs at 8:00 India time.</p>';
+    else if (!fresh.length) h += '<p class="big">Nothing new today</p><p>' + (scan ? "The last scan ran " + esc(ago(scan.scanned_at)) + " and found no new thread worth a reply. " : "") + "Earlier threads are still listed below.</p>";
+    else h += '<p class="big">' + fresh.length + " new thread" + (fresh.length === 1 ? "" : "s") + " today</p>";
+    if (scan && scan.summary) h += "<p>" + esc(scan.summary) + "</p>";
+    if (best.length) h += "<h2>Best three to reply to</h2><ol>" + best.map(function (l) {
+      return '<li><a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">' + esc(l.title) + "</a> · r/" + esc(l.subreddit) + " · fit " + l.score + "</li>";
+    }).join("") + "</ol>";
+    h += '<p class="words">Post at most three replies a day, and never twice in one thread or to the same person.</p>';
+    $("today").innerHTML = h;
+  }
+
+  function renderLeads() {
+    var min = +$("minScore").value, st = $("statusFilter").value;
+    var rows = leads.filter(function (l) { return l.score >= min && (st === "all" || l.status === st); });
+    if (!rows.length) { $("leads").innerHTML = '<div class="empty"><strong>No threads match</strong>Lower the minimum fit, or change the Show filter, to see more.</div>'; return; }
+    $("leads").innerHTML = rows.map(function (l) {
+      return '<article class="card ' + (l.status !== "new" ? "done" : "") + '" data-id="' + esc(l.post_id) + '">' +
+        '<div class="top"><div class="score s' + l.score + '" title="Fit score out of 5">' + l.score + '</div><div style="min-width:0">' +
+        '<p class="title">' + esc(l.title) + '</p><p class="meta">r/' + esc(l.subreddit) + " · found " + esc(ago(l.found_at)) +
+        (l.status !== "new" ? " · " + (l.status === "contacted" ? "Replied" : "Ignored") : "") + "</p></div></div>" +
+        '<p class="excerpt">' + esc(l.excerpt) + "</p>" +
+        '<dl class="facts"><dt>Who</dt><dd>' + esc(l.persona) + "</dd><dt>Problem</dt><dd>" + esc(l.problem) + "</dd></dl>" +
+        (l.api_tier_hook ? '<div><span class="chip hook">Poster asked for a tool: free API tier allowed</span></div>' : "") +
+        (l.rules_flag ? '<div><span class="chip warn">Read the r/' + esc(l.subreddit) + " rules before posting</span></div>" : "") +
+        '<textarea aria-label="Reply draft" data-role="reply" placeholder="No reply is drafted for this thread. Write your own if it is worth it.">' + esc(l.reply) + "</textarea>" +
+        '<div class="words" data-role="wc">' + words(l.reply) + NOTE + "</div>" +
+        '<div class="actions"><button class="btn primary" data-act="copy">Copy reply</button>' +
+        '<a class="btn" href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer">Open on Reddit</a>' +
+        '<button class="btn ' + (l.status === "contacted" ? "on" : "") + '" data-act="contacted">Replied</button>' +
+        '<button class="btn ' + (l.status === "ignored" ? "on" : "") + '" data-act="ignored">Ignore</button></div></article>';
+    }).join("");
+  }
+
+  function renderPosts() {
+    if (!posts.length) { $("posts").innerHTML = '<div class="empty"><strong>No post drafts yet</strong>A new teaching post is drafted every Monday from one of the Emithran case studies.</div>'; return; }
+    $("posts").innerHTML = posts.map(function (p) {
+      return '<article class="card" data-id="' + esc(p.id) + '"><p class="title">' + esc(p.title) + "</p>" +
+        '<p class="meta">r/' + esc(p.subreddit) + " · based on " + esc(p.based_on) + " · drafted " + esc(ago(p.created_at)) + "</p>" +
+        '<textarea aria-label="Post body" data-role="body" style="min-height:260px">' + esc(p.body) + "</textarea>" +
+        '<div class="words">Anything in [square brackets] needs a real number from you before posting.</div>' +
+        '<div class="actions"><button class="btn primary" data-act="copytitle">Copy title</button><button class="btn primary" data-act="copybody">Copy body</button></div></article>';
+    }).join("");
+  }
+
+  function copyText(text, btn, ta) {
+    var done = function () { var o = btn.textContent; btn.textContent = "Copied"; setTimeout(function () { btn.textContent = o; }, 1500); };
+    var fallback = function () { if (ta) { ta.focus(); ta.select(); } btn.textContent = "Select and press Ctrl+C"; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  }
+  function patch(table, key, id, data) {
+    return api("/rest/v1/" + table + "?" + key + "=eq." + encodeURIComponent(id), { method: "PATCH", body: data })
+      .then(function () { warn(""); }, function (e) { if (e.message !== "401") warn("That change could not be saved. Reload and try again."); });
+  }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    var card = b.closest(".card"), id = card.getAttribute("data-id"), act = b.getAttribute("data-act"), ta = card.querySelector("textarea");
+    if (act === "copy" || act === "copybody") copyText(ta.value, b, ta);
+    else if (act === "copytitle") { var p = posts.filter(function (x) { return x.id === id; })[0]; copyText(p ? p.title : "", b, null); }
+    else {
+      var l = leads.filter(function (x) { return x.post_id === id; })[0]; if (!l) return;
+      l.status = l.status === act ? "new" : act; renderLeads(); renderToday();
+      patch("leads", "post_id", id, { status: l.status });
+    }
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target.getAttribute("data-role") === "reply") e.target.closest(".card").querySelector("[data-role=wc]").textContent = words(e.target.value) + NOTE;
+  });
+  document.addEventListener("change", function (e) {
+    var role = e.target.getAttribute && e.target.getAttribute("data-role"); if (!role) return;
+    var id = e.target.closest(".card").getAttribute("data-id");
+    if (role === "reply") { var l = leads.filter(function (x) { return x.post_id === id; })[0]; if (l) l.reply = e.target.value; patch("leads", "post_id", id, { reply: e.target.value }); }
+    if (role === "body") { var p = posts.filter(function (x) { return x.id === id; })[0]; if (p) p.body = e.target.value; patch("posts", "id", id, { body: e.target.value }); }
+  });
+
+  function setTab(t) {
+    $("tab-leads").setAttribute("aria-selected", t === "leads"); $("tab-posts").setAttribute("aria-selected", t === "posts");
+    $("leadsView").hidden = t !== "leads"; $("postsView").hidden = t !== "posts";
+  }
+  $("tab-leads").onclick = function () { setTab("leads"); };
+  $("tab-posts").onclick = function () { setTab("posts"); };
+  $("minScore").onchange = renderLeads; $("statusFilter").onchange = renderLeads;
+
+  if (SUPABASE_URL.indexOf("YOUR-PROJECT") !== -1) { $("status").textContent = "Setup needed: put your Supabase URL and anon key at the top of index.html."; $("login").hidden = true; return; }
+  try { token = sessionStorage.getItem("sb_token"); } catch (e) {}
+  if (token) load();
+})();
+</script>
+</body>
+</html>
